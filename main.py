@@ -63,7 +63,7 @@ def send_files(data, filename):
     assert r.status_code == 200
 
 @app.route("/auth", methods=["POST", "GET"])
-def auth():
+def myauth():
 
     html_page = """
     <html>
@@ -100,7 +100,7 @@ def auth():
     return response
 
 @app.route('/export_mosaic', methods=["POST", "GET"])
-def export_mosaic():
+def myexport_mosaic():
 
     outfile = get_outfile()
     data = request.get_json()
