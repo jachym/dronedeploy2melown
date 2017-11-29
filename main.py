@@ -103,6 +103,15 @@ def myauth():
 def myexport_mosaic():
 
     outfile = get_outfile()
+    with open(outfile, "w") as out:
+        out.write("Request accepted")
+        out.write("\n---------------------\n")
+        out.write(str(request.headers))
+        out.write("\n---------------------\n")
+        out.write(str(data))
+        out.write("\n---------------------\n")
+        out.write(str(args))
+
     data = request.get_json()
     args = request.args
 
@@ -124,15 +133,7 @@ def myexport_mosaic():
 
     send_files(resp.get_json(), tif_file)
 
-    with open(outfile, "w") as out:
-        out.write(str(request.headers))
-        out.write("\n---------------------\n")
-        if hasattr(request, "data"):
-            out.write(str(request.data))
-            out.write("\n---------------------\n")
-        if hasattr(request, "args"):
-            out.write(str(request.args))
-            pass
+    with open(outfile, "a") as out:
         out.write("\n---------------------\n")
         out.write(str(resp.status_code))
         out.write("\n---------------------\n")
