@@ -108,7 +108,7 @@ def myexport_mosaic():
 
     tif_file = unzip_dataset(data["download_path"])
 
-    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args.account_id, args.app_id, args.access_token)
+    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
     post_data = {
         "files": [{
@@ -116,7 +116,7 @@ def myexport_mosaic():
           "crs": "EPSG:3857",
           "path_component": os.path.basename(tif_file)
         }],
-        "name": "{}-{}".format(data["layer"], data["map_id"])
+        "name": "{}-{}".format(data["layer"], data["map_id"]),
         "type": "unknown"
     }
 
