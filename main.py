@@ -2,8 +2,22 @@ from flask import Flask
 from flask import request
 import os
 import json
+import atexit
+import shutil
+import tempfile
+import requests
+import zipfile
 
 app = Flask(__name__)
+TEMPDIR = None
+
+def clear():
+    global TEMPDIR
+
+    if TEMPDIR and os.path.isdir(TEMPDIR):
+        shutil.rmtree(TEMPDIR)
+
+atexit.register(clear)
 
 def get_outfile():
 
@@ -21,35 +35,95 @@ def writeout(data, mode="w"):
     with open(outfile, mode) as out:
         out.write(data)
 
-@app.route('/', methods=["POST", "GET"])
-def hello_world():
+def unzip_dataset(url):
+    global TEMPDIR
 
-    if request.method == "POST":
-        pass
+    TEMPDIR = tempfile.mkdtemp(preffix="dronedeploy-")
+    r = requests.get(url)
+    zip_file = os.path.join(TEMPDIR, "output.zip")
+    with open(zip_file, "wb") as out_zip:
+        out_zip.write(r.content)
 
+    zf = zipfile.ZipFile(zip_file)
+    zf.extractall(TEMPDIR)
 
-    #print(request.args)
-    #print(request.method)
-    #print(request.headers["Content-type"])
-    #writeout("{}".format(request.headers["Content-type"], "w"))
-    #return("Hello world agin")
-    #
-    #if request.headers['Content-Type'] == 'text/plain':
-    #    try:
-    #        writeout(request.data, "wb")
-    #    except Exception as e:
-    #        writeout(str(e), "w")
-    #
-    #elif request.headers['Content-Type'] == 'application/json':
-    #    writeout(json.dumps(request.json), "w")
-    #
-    #elif request.headers['Content-Type'] == 'application/octet-stream':
-    #    writeout(request.data, "wb")
-    #
-    #else:
-    #    writeout("415 Unsupported Media Type ;) {}".format(request.headers["Content-type"]), "w")
+    file_name = None
+    for f in os.listdir(TEMPDIR):
+        if f.endswith(".tif"):
+            file_name = os.path.abspath(os.path.join(TEMPDIR, f))
+    assert file_name
+    return file_name
+
+def send_files(data, filename):
+    request = {
+        'qqfile': open(filename, 'rb'),
+        'path': data["body"]["files"][0]["path"]
+    }
+    r = requests.post(url, files=files)
+    assert r.status_code == 200
+
+@app.route("/auth", methods=["POST", "GET"])
+def auth():
+
+    html_page = """
+    <html>
+    <head>
+        <script type="text/javascript">
+        var receiveMessage = function(event) {
+
+            console.log("ziju!")
+            document.write("ziju!")
+
+            var data = {
+                access_token: "%s",
+                expires: "%s",
+                state: "%s",
+                action: "%s"
+            };
+            event.source.postMessage(JSON.stringify(data), event.origin);
+            document.write(event.origin);
+
+        };
+        window.addEventListener("message", receiveMessage, false);
+        document.write("listening");
+        </script>
+    </head>
+    </html>
+    """ % (request.args["access_token"], request.args["expires"],
+           request.args["state"], request.args["action"])
+
+    response = app.response_class(
+        response=html_page,
+        status=200,
+        mimetype='text/html'
+    )
+    return response
+
+@app.route('/export_mosaic', methods=["POST", "GET"])
+def export_mosaic():
 
     outfile = get_outfile()
+    data = request.get_json()
+    args = request.args
+
+    tif_file = unzip_dataset(data["download_path"])
+
+    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args.account_id, args.app_id, args.access_token)
+
+    post_data = {
+        "files": [{
+          "byte_size": os.stat(tif_file).st_size,
+          "crs": "EPSG:3857",
+          "path_component": os.path.basename(tif_file)
+        }],
+        "name": "{}-{}".format(data["layer"], data["map_id"])
+        "type": "unknown"
+    }
+
+    resp = requests.post(url, data=post_data)
+
+    send_files(resp.get_json(), tif_file)
+
     with open(outfile, "w") as out:
         out.write(str(request.headers))
         out.write("\n---------------------\n")
@@ -59,7 +133,10 @@ def hello_world():
         if hasattr(request, "args"):
             out.write(str(request.args))
             pass
-
+        out.write("\n---------------------\n")
+        out.write(str(resp.status_code))
+        out.write("\n---------------------\n")
+        out.write(str(resp.get_json()))
 
     return "hello"
     #return 'Hello, World! {} {}'.format(outdir, outfile)
