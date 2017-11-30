@@ -99,6 +99,10 @@ def myauth():
     )
     return response
 
+@app.route('/just_test', methods=["POST", "GET"])
+def test():
+    return "A life!"
+
 @app.route('/export_mosaic', methods=["POST", "GET"])
 def myexport_mosaic():
 
