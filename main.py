@@ -102,44 +102,45 @@ def myauth():
 @app.route('/export_mosaic', methods=["POST", "GET"])
 def myexport_mosaic():
 
-    outfile = get_outfile()
-    with open(outfile, "w") as out:
-        out.write("Request accepted")
-        out.write("\n---------------------\n")
-        out.write(str(request.headers))
-        out.write("\n---------------------\n")
-        out.write(str(data))
-        out.write("\n---------------------\n")
-        out.write(str(args))
+    return "Hello, world"
+    #outfile = get_outfile()
+    #with open(outfile, "w") as out:
+    #    out.write("Request accepted")
+    #    out.write("\n---------------------\n")
+    #    out.write(str(request.headers))
+    #    out.write("\n---------------------\n")
+    #    out.write(str(data))
+    #    out.write("\n---------------------\n")
+    #    out.write(str(args))
 
-    data = request.get_json()
-    args = request.args
+    #data = request.get_json()
+    #args = request.args
 
-    tif_file = unzip_dataset(data["download_path"])
+    #tif_file = unzip_dataset(data["download_path"])
 
-    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
+    #url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
-    post_data = {
-        "files": [{
-          "byte_size": os.stat(tif_file).st_size,
-          "crs": "EPSG:3857",
-          "path_component": os.path.basename(tif_file)
-        }],
-        "name": "{}-{}".format(data["layer"], data["map_id"]),
-        "type": "unknown"
-    }
+    #post_data = {
+    #    "files": [{
+    #      "byte_size": os.stat(tif_file).st_size,
+    #      "crs": "EPSG:3857",
+    #      "path_component": os.path.basename(tif_file)
+    #    }],
+    #    "name": "{}-{}".format(data["layer"], data["map_id"]),
+    #    "type": "unknown"
+    #}
 
-    resp = requests.post(url, data=post_data)
+    #resp = requests.post(url, data=post_data)
 
-    send_files(resp.get_json(), tif_file)
+    #send_files(resp.get_json(), tif_file)
 
-    with open(outfile, "a") as out:
-        out.write("\n---------------------\n")
-        out.write(str(resp.status_code))
-        out.write("\n---------------------\n")
-        out.write(str(resp.get_json()))
+    #with open(outfile, "a") as out:
+    #    out.write("\n---------------------\n")
+    #    out.write(str(resp.status_code))
+    #    out.write("\n---------------------\n")
+    #    out.write(str(resp.get_json()))
 
-    return "hello"
+    #return "hello"
     #return 'Hello, World! {} {}'.format(outdir, outfile)
 
 if __name__ == '__main__':
