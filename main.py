@@ -121,6 +121,10 @@ def myexport_mosaic():
 
     tif_file = unzip_dataset(data["download_path"])
 
+    with open(outfile, "w") as out:
+        out.write("\n---------------------\n")
+        out.write(tif_file)
+
     url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
     post_data = {
