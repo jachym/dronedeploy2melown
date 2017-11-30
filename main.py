@@ -38,7 +38,7 @@ def writeout(data, mode="w"):
 def unzip_dataset(url):
     global TEMPDIR
 
-    TEMPDIR = tempfile.mkdtemp(preffix="dronedeploy-")
+    TEMPDIR = tempfile.mkdtemp(prefix="dronedeploy-")
     r = requests.get(url)
     zip_file = os.path.join(TEMPDIR, "output.zip")
     with open(zip_file, "wb") as out_zip:
