@@ -107,6 +107,9 @@ def test():
 def myexport_mosaic():
 
     outfile = get_outfile()
+    data = request.get_json()
+    args = request.args
+
     with open(outfile, "w") as out:
         out.write("Request accepted")
         out.write("\n---------------------\n")
@@ -115,10 +118,6 @@ def myexport_mosaic():
         out.write(str(data))
         out.write("\n---------------------\n")
         out.write(str(args))
-
-    try:
-        data = request.get_json()
-        args = request.args
 
         tif_file = unzip_dataset(data["download_path"])
 
