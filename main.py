@@ -1,5 +1,6 @@
 from flask import Flask
 from flask import request
+from flask import Response
 import os
 import json
 import atexit
@@ -13,7 +14,8 @@ TEMPDIR = None
 
 def clear():
     global TEMPDIR
-
+    print("removing {}".format(TEMPDIR))
+    return
     if TEMPDIR and os.path.isdir(TEMPDIR):
         shutil.rmtree(TEMPDIR)
 
@@ -58,13 +60,22 @@ def unzip_dataset(url):
     return file_name
 
 def send_files(url, data, filename):
+    final_component = os.path.basename(filename)
     with open(filename, "rb") as tiff_data:
-        request = {
-            'qqfile': tiff_data,
+
+        files = {
+            'qqfile': (
+                final_component, 
+                open(filename, "rb").read()
+            )
+        }
+
+        data = {
             'path': data["body"]["files"][0]["path"]
         }
-        r = requests.post(url, files=request)
-        assert r.status_code == 200
+
+        r = requests.post(url, files=files, data=data)
+        assert r.status_code == 201
 
 @app.route("/auth", methods=["POST", "GET"])
 def myauth():
@@ -134,19 +145,23 @@ def myexport_mosaic():
 
         resp = requests.post(url, data=json.dumps(post_data), headers=headers)
         assert resp.status_code == 201
+        resp_json = resp.json()
 
         url = "https://www.melown.com/cloud/backend/upload/file?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["app_id"], args["access_token"])
-        send_files(url, resp.json(), tif_file)
+        send_files(url, resp_json, tif_file)
 
-        resp = flask.Response(response=json.dumps({
-            "file": os.path.basename(tif_file),
-            "name": dataset_name
+        final_resp = Response(
+            response=json.dumps({
+                "file": os.path.basename(tif_file),
+                "name": dataset_name,
+                "dataset_id": resp_json["body"]["id"]
             }),
-                        status=200,
-                        mimetype="application/json")
+            status=200,
+            mimetype="application/json"
+        )
     finally:
         clear()
-    return resp
+    return final_resp
     #return 'Hello, World! {} {}'.format(outdir, outfile)
 
 if __name__ == '__main__':
