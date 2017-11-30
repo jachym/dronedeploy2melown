@@ -110,39 +110,46 @@ def myexport_mosaic():
     data = request.get_json()
     args = request.args
 
+    with open(outfile, "w") as out:
+        out.write("Request accepted")
+        out.write("\n---------------------\n")
+        out.write(str(request.headers))
+        out.write("\n---------------------\n")
+        out.write(str(data))
+        out.write("\n---------------------\n")
+        out.write(str(args))
+
+
+        tif_file = unzip_dataset(data["download_path"])
+
+        out.write("\n---------------------\n")
+        out.write(tif_file)
     try:
-        with open(outfile, "w") as out:
-            out.write("Request accepted")
-            out.write("\n---------------------\n")
-            out.write(str(request.headers))
-            out.write("\n---------------------\n")
-            out.write(str(data))
-            out.write("\n---------------------\n")
-            out.write(str(args))
 
 
-            tif_file = unzip_dataset(data["download_path"])
+        url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
-            out.write("\n---------------------\n")
-            out.write(tif_file)
+        out.write("\n---------------------\n")
+        out.write(url)
+
+        post_data = {
+            "files": [{
+              "byte_size": os.stat(tif_file).st_size,
+              "crs": "EPSG:3857",
+              "path_component": os.path.basename(tif_file)
+            }],
+            "name": "{}-{}".format(data["layer"], data["map_id"]),
+            "type": "unknown"
+        }
+
+        out.write("\n---------------------\n")
+        out.write(str(post_data))
+
+        resp = requests.post(url, data=post_data)
     except Exception as e:
         with open(outfile, "w") as out:
             out.write("\n---------------------\n")
             out.write(str(e))
-
-    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
-
-    post_data = {
-        "files": [{
-          "byte_size": os.stat(tif_file).st_size,
-          "crs": "EPSG:3857",
-          "path_component": os.path.basename(tif_file)
-        }],
-        "name": "{}-{}".format(data["layer"], data["map_id"]),
-        "type": "unknown"
-    }
-
-    resp = requests.post(url, data=post_data)
 
     send_files(resp.get_json(), tif_file)
 
