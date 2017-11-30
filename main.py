@@ -125,7 +125,6 @@ def myexport_mosaic():
 
         out.write("\n---------------------\n")
         out.write(tif_file)
-    try:
 
 
         url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
@@ -146,6 +145,7 @@ def myexport_mosaic():
         out.write("\n---------------------\n")
         out.write(str(post_data))
 
+    try:
         resp = requests.post(url, data=post_data)
     except Exception as e:
         with open(outfile, "a") as out:
