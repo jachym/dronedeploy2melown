@@ -116,14 +116,19 @@ def myexport_mosaic():
         out.write("\n---------------------\n")
         out.write(str(args))
 
-    data = request.get_json()
-    args = request.args
+    try:
+        data = request.get_json()
+        args = request.args
 
-    tif_file = unzip_dataset(data["download_path"])
+        tif_file = unzip_dataset(data["download_path"])
 
-    with open(outfile, "w") as out:
-        out.write("\n---------------------\n")
-        out.write(tif_file)
+        with open(outfile, "w") as out:
+            out.write("\n---------------------\n")
+            out.write(tif_file)
+    except Exception as e:
+        with open(outfile, "w") as out:
+            out.write("\n---------------------\n")
+            out.write(str(e))
 
     url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
