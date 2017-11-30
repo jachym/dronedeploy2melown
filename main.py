@@ -110,18 +110,19 @@ def myexport_mosaic():
     data = request.get_json()
     args = request.args
 
-    with open(outfile, "w") as out:
-        out.write("Request accepted")
-        out.write("\n---------------------\n")
-        out.write(str(request.headers))
-        out.write("\n---------------------\n")
-        out.write(str(data))
-        out.write("\n---------------------\n")
-        out.write(str(args))
-
-        tif_file = unzip_dataset(data["download_path"])
-
+    try:
         with open(outfile, "w") as out:
+            out.write("Request accepted")
+            out.write("\n---------------------\n")
+            out.write(str(request.headers))
+            out.write("\n---------------------\n")
+            out.write(str(data))
+            out.write("\n---------------------\n")
+            out.write(str(args))
+
+
+            tif_file = unzip_dataset(data["download_path"])
+
             out.write("\n---------------------\n")
             out.write(tif_file)
     except Exception as e:
