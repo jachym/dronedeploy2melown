@@ -9,7 +9,6 @@ import requests
 import zipfile
 
 app = Flask(__name__)
-app.debug = True
 TEMPDIR = None
 
 def clear():
@@ -111,41 +110,45 @@ def test():
 @app.route('/export_mosaic', methods=["POST", "GET"])
 def myexport_mosaic():
 
-    outfile = get_outfile()
-    data = request.get_json()
-    args = request.args
+    try:
+        outfile = get_outfile()
+        data = request.get_json()
+        args = request.args
 
-    tif_file = unzip_dataset(data["download_path"])
+        tif_file = unzip_dataset(data["download_path"])
 
-    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
+        url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
-    dataset_name = "{}-{}".format(data["layer"], data["map_id"])
-    post_data = {
-        "files": [{
-          "byte_size": os.stat(tif_file).st_size,
-          "crc": "EPSG:3857",
-          "path_component": os.path.basename(tif_file)
-        }],
-        "name": dataset_name,
-        "type": "unknown"
-    }
+        dataset_name = "{}-{}".format(data["layer"], data["map_id"])
+        post_data = {
+            "files": [{
+              "byte_size": os.stat(tif_file).st_size,
+              "crc": "EPSG:3857",
+              "path_component": os.path.basename(tif_file)
+            }],
+            "name": dataset_name,
+            "type": "unknown"
+        }
 
-    headers = {'content-type': 'application/json'}
+        headers = {'content-type': 'application/json'}
 
-    resp = requests.post(url, data=json.dumps(post_data), headers=headers)
-    assert resp.status_code == 201
+        resp = requests.post(url, data=json.dumps(post_data), headers=headers)
+        assert resp.status_code == 201
 
-    url = "https://www.melown.com/cloud/backend/upload/file?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["app_id"], args["access_token"])
-    send_files(url, resp.json(), tif_file)
+        url = "https://www.melown.com/cloud/backend/upload/file?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["app_id"], args["access_token"])
+        send_files(url, resp.json(), tif_file)
 
-    resp = flask.Response(response=json.dumps({
-        "file": os.path.basename(tif_file),
-        "name": dataset_name
-        }),
-                    status=200,
-                    mimetype="application/json")
+        resp = flask.Response(response=json.dumps({
+            "file": os.path.basename(tif_file),
+            "name": dataset_name
+            }),
+                        status=200,
+                        mimetype="application/json")
+    finally:
+        clear()
     return resp
     #return 'Hello, World! {} {}'.format(outdir, outfile)
 
 if __name__ == '__main__':
+  app.debug = True
   app.run()
