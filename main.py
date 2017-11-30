@@ -99,7 +99,7 @@ def myauth():
     )
     return response
 
-@app.route('/just_test', methods=["POST", "GET"])
+@app.route('/', methods=["POST", "GET"])
 def test():
     return "A life!"
 
