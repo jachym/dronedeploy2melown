@@ -148,7 +148,7 @@ def myexport_mosaic():
 
         resp = requests.post(url, data=post_data)
     except Exception as e:
-        with open(outfile, "w") as out:
+        with open(outfile, "a") as out:
             out.write("\n###################\n")
             out.write(str(e))
 
