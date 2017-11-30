@@ -23,7 +23,10 @@ atexit.register(clear)
 def get_outfile():
 
     dirname = os.path.dirname(__file__)
-    outdir = os.path.join(dirname, "..", "..", "LogFiles", "http", "RawLogs", "out")
+    if os.name != "posix":
+        outdir = os.path.join(dirname, "..", "..", "LogFiles", "http", "RawLogs", "out")
+    else:
+        outdir = "/tmp/"
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
     outfile = os.path.join(outdir, "out.txt")
@@ -55,13 +58,14 @@ def unzip_dataset(url):
     assert file_name
     return file_name
 
-def send_files(data, filename):
-    request = {
-        'qqfile': open(filename, 'rb'),
-        'path': data["body"]["files"][0]["path"]
-    }
-    r = requests.post(url, files=files)
-    assert r.status_code == 200
+def send_files(url, data, filename):
+    with open(filename, "rb") as tiff_data:
+        request = {
+            'qqfile': tiff_data,
+            'path': data["body"]["files"][0]["path"]
+        }
+        r = requests.post(url, files=request)
+        assert r.status_code == 200
 
 @app.route("/auth", methods=["POST", "GET"])
 def myauth():
@@ -111,56 +115,36 @@ def myexport_mosaic():
     data = request.get_json()
     args = request.args
 
-    with open(outfile, "w") as out:
-        out.write("Request accepted")
-        out.write("\n---------------------\n")
-        out.write(str(request.headers))
-        out.write("\n---------------------\n")
-        out.write(str(data))
-        out.write("\n---------------------\n")
-        out.write(str(args))
+    tif_file = unzip_dataset(data["download_path"])
 
+    url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
-        tif_file = unzip_dataset(data["download_path"])
+    dataset_name = "{}-{}".format(data["layer"], data["map_id"])
+    post_data = {
+        "files": [{
+          "byte_size": os.stat(tif_file).st_size,
+          "crc": "EPSG:3857",
+          "path_component": os.path.basename(tif_file)
+        }],
+        "name": dataset_name,
+        "type": "unknown"
+    }
 
-        out.write("\n---------------------\n")
-        out.write(tif_file)
+    headers = {'content-type': 'application/json'}
 
+    resp = requests.post(url, data=json.dumps(post_data), headers=headers)
+    assert resp.status_code == 201
 
-        url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
+    url = "https://www.melown.com/cloud/backend/upload/file?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["app_id"], args["access_token"])
+    send_files(url, resp.json(), tif_file)
 
-        out.write("\n---------------------\n")
-        out.write(url)
-
-        post_data = {
-            "files": [{
-              "byte_size": os.stat(tif_file).st_size,
-              "crs": "EPSG:3857",
-              "path_component": os.path.basename(tif_file)
-            }],
-            "name": "{}-{}".format(data["layer"], data["map_id"]),
-            "type": "unknown"
-        }
-
-        out.write("\n---------------------\n")
-        out.write(str(post_data))
-
-    try:
-        resp = requests.post(url, data=post_data)
-    except Exception as e:
-        with open(outfile, "a") as out:
-            out.write("\n###################\n")
-            out.write(str(e))
-
-    send_files(resp.get_json(), tif_file)
-
-    with open(outfile, "a") as out:
-        out.write("\n---------------------\n")
-        out.write(str(resp.status_code))
-        out.write("\n---------------------\n")
-        out.write(str(resp.get_json()))
-
-    return "hello"
+    resp = flask.Response(response=json.dumps({
+        "file": os.path.basename(tif_file),
+        "name": dataset_name
+        }),
+                    status=200,
+                    mimetype="application/json")
+    return resp
     #return 'Hello, World! {} {}'.format(outdir, outfile)
 
 if __name__ == '__main__':
