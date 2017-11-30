@@ -13,32 +13,21 @@ app = Flask(__name__)
 TEMPDIR = None
 
 def clear():
+    """Clear temporary files and directories
+    """
     global TEMPDIR
     if TEMPDIR and os.path.isdir(TEMPDIR):
         shutil.rmtree(TEMPDIR)
 
 atexit.register(clear)
 
-def get_outfile():
+def download_dataset(url):
+    """Download zipped file from given URL, unzip
 
-    dirname = os.path.dirname(__file__)
-    if os.name != "posix":
-        outdir = os.path.join(dirname, "..", "..", "LogFiles", "http", "RawLogs", "out")
-    else:
-        outdir = "/tmp/"
-    if not os.path.isdir(outdir):
-        os.mkdir(outdir)
-    outfile = os.path.join(outdir, "out.txt")
-    return outfile
+    :param url: URL of zipped archive
+    :return: filename
+    """
 
-def writeout(data, mode="w"):
-
-    outfile = get_outfile()
-
-    with open(outfile, mode) as out:
-        out.write(data)
-
-def unzip_dataset(url):
     global TEMPDIR
 
     TEMPDIR = tempfile.mkdtemp(prefix="dronedeploy-")
@@ -57,13 +46,16 @@ def unzip_dataset(url):
     assert file_name
     return file_name
 
-def send_files(url, data, filename):
+def upload_files(url, data, filename):
+    """Upload files to created dataset. NOTE that we are using only one file
+    """
+
     final_component = os.path.basename(filename)
     with open(filename, "rb") as tiff_data:
 
         files = {
             'qqfile': (
-                final_component, 
+                final_component,
                 open(filename, "rb").read()
             )
         }
@@ -77,6 +69,10 @@ def send_files(url, data, filename):
 
 @app.route("/auth", methods=["POST", "GET"])
 def myauth():
+    """Authorisation response - this + a bit of javascript code for oAuth
+    response
+    """
+    # TODO: change this to template
 
     html_page = """
     <html>
@@ -112,19 +108,16 @@ def myauth():
     )
     return response
 
-@app.route('/', methods=["POST", "GET"])
-def test():
-    return "A life!"
-
 @app.route('/export_mosaic', methods=["POST", "GET"])
 def myexport_mosaic():
+    """Export data to Melown cloud
+    """
 
     try:
-        outfile = get_outfile()
         data = request.get_json()
         args = request.args
 
-        tif_file = unzip_dataset(data["download_path"])
+        tif_file = download_dataset(data["download_path"])
 
         url = "https://www.melown.com/cloud/backend/api/account/{}/dataset?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["account_id"], args["app_id"], args["access_token"])
 
@@ -146,7 +139,7 @@ def myexport_mosaic():
         resp_json = resp.json()
 
         url = "https://www.melown.com/cloud/backend/upload/file?app_id={}&access_token={}&req_scopes=MARIO_API".format(args["app_id"], args["access_token"])
-        send_files(url, resp_json, tif_file)
+        upload_files(url, resp_json, tif_file)
 
         final_resp = Response(
             response=json.dumps({
@@ -160,7 +153,6 @@ def myexport_mosaic():
     finally:
         clear()
     return final_resp
-    #return 'Hello, World! {} {}'.format(outdir, outfile)
 
 if __name__ == '__main__':
   app.debug = True
