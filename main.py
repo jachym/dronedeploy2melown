@@ -14,8 +14,6 @@ TEMPDIR = None
 
 def clear():
     global TEMPDIR
-    print("removing {}".format(TEMPDIR))
-    return
     if TEMPDIR and os.path.isdir(TEMPDIR):
         shutil.rmtree(TEMPDIR)
 
