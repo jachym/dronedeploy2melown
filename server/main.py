@@ -67,6 +67,10 @@ def upload_files(url, data, filename):
         r = requests.post(url, files=files, data=data)
         assert r.status_code == 201
 
+@app.route("/", methods=["POST", "GET"])
+def default():
+    return "Hello, world!"
+
 @app.route("/auth", methods=["POST", "GET"])
 def myauth():
     """Authorisation response - this + a bit of javascript code for oAuth
@@ -80,8 +84,7 @@ def myauth():
         <script type="text/javascript">
         var receiveMessage = function(event) {
 
-            console.log("ziju!")
-            document.write("ziju!")
+            document.write("Message recieved");
 
             var data = {
                 access_token: "%s",
