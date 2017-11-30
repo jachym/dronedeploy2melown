@@ -9,6 +9,7 @@ import requests
 import zipfile
 
 app = Flask(__name__)
+app.debug = True
 TEMPDIR = None
 
 def clear():
@@ -148,7 +149,7 @@ def myexport_mosaic():
         resp = requests.post(url, data=post_data)
     except Exception as e:
         with open(outfile, "w") as out:
-            out.write("\n---------------------\n")
+            out.write("\n###################\n")
             out.write(str(e))
 
     send_files(resp.get_json(), tif_file)
